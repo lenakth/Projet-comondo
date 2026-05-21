@@ -1,0 +1,220 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+#program utilise pour etudier les effets de tailles sur les reseaux carres/rectangle 2D
+#Tableau NxM
+#nombre de repetition pour chaque p
+
+
+
+
+
+
+def generation_grille_2D_rectangle(x,y,p):
+
+    grille = np.random.random((x,y))<p
+
+    return grille
+
+
+#test
+grille_3D_test = generation_grille_2D_rectangle(5,6,0.5)
+print(grille_3D_test)
+
+
+
+#verification de la proportion des sites occupés
+
+print(np.mean(generation_grille_2D_rectangle(10,20,0.6)))
+
+
+
+
+def afficher_grille_2D(grille):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = "3d")
+
+    ax.voxels(grille)
+    plt.show()
+
+
+
+
+
+
+def voisins_r_2d(i,j, x,y):
+    candidats = [(i-1,j), (i+1,j), (i, j-1), (i,j+1)]
+    voisins_valides = []
+
+    for a, b in candidats:
+        if 0 <= a < x and 0 <= b <  y :
+            voisins_valides.append((a,b))
+    return voisins_valides
+
+
+print(voisins_r_2d(0,0,2,3))
+
+
+print(voisins_r_2d(2,3, 6,7))
+
+
+def exploration_amas_2D_r(grille,depart,visites):
+
+    x,y= grille.shape #taille de la grille
+
+    pile = [depart] #site de départ
+    amas = [] #coordonnées des sites qui créent un amas avec le site depart
+
+    visites.add(depart) #liste avec les sites déjà controlés pour ne pas les recontroler une seconde fois
+
+    while pile:
+        i,j = pile.pop()
+        amas.append((i,j))
+
+        for a,b in voisins_r_2d(i,j,x,y): #controle des voisins du site observé
+            if grille[a,b] and (a,b) not in visites: #test si le site voisin considéré et vide ou pas et si on l'a pas déjà controlé
+                visites.add((a,b))
+                pile.append((a,b))
+
+    return amas
+
+def trouver_amas_2D_r(grille):
+    x,y = grille.shape
+    visites = set() #creation d'un ensemble des sites déjà visités (ne contient pas de doublons, car set)
+    liste_amas = [] #liste pour stocker les amas trouvés
+
+    for i in range(x):
+        for j in range(y): #pour chaque ligne i on parcourt toutes les colonnes j
+            if grille[i,j] and (i,j) not in visites: #vérifie si le site i,j est occupé ou non et s'il a déjà été visité ou non
+                amas = exploration_amas_2D_r(grille, (i,j),visites) #si c'est le cas, i,j et le début d'un nouvel amas et on utilise la fonction exploration_amas pour cartographier l'amas
+                liste_amas.append(amas) #on ajoute l'amas cartographié de départ i,j à la liste qui repère les amas
+    return liste_amas
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+
+
+
+
+def amas_percole_verticalement_2D_r(amas, x,y):
+    touche_haut = False
+    touche_bas = False
+
+    for i, j in amas:
+        if i == 0:
+            touche_haut = True
+        if i == x - 1:
+            touche_bas = True
+
+    return touche_haut and touche_bas
+
+
+def amas_percole_horizontalement_2D_r(amas, x,y):
+    touche_gauche = False
+    touche_droite = False
+
+    for i, j in amas:
+        if j == 0:
+            touche_gauche = True
+        if j == y - 1:
+            touche_droite = True
+
+    return touche_gauche and touche_droite
+
+
+
+
+
+def percole_2D_r(grille):
+    x,y = grille.shape
+    liste_amas = trouver_amas_2D_r(grille)
+
+    for amas in liste_amas:
+        if amas_percole_verticalement_2D_r(amas, x,y) or amas_percole_horizontalement_2D_r(amas,x,y):
+            return True
+
+    return False
+
+
+
+def proba_percolation_2D_r(x,y,p,nb_repetitions):
+    compteur_percolation = 0
+
+    for k in range(nb_repetitions):
+        grille = generation_grille_2D_rectangle(x,y,p) #creations de grilles NxN à proba p aléatoires
+
+        if percole_2D_r(grille): #voir si les grilles percoles si oui on augmente le compteur
+            compteur_percolation += 1
+
+    proba = compteur_percolation/nb_repetitions
+    return proba
+
+
+
+def estimer_pc(x,y, repetitions):
+    valeurs_p = np.linspace(0.10, 0.75, 31)
+    resultats = []
+
+    for p in valeurs_p:
+        proba = proba_percolation_2D_r(x,y, p, repetitions)
+        resultats.append(proba)
+
+    resultats = np.array(resultats)
+    indice = np.argmin(abs(resultats - 0.5))
+    pc_estime = valeurs_p[indice]
+
+    return pc_estime, valeurs_p, resultats
+
+
+
+
+def estimer_pc_2D_r(x, y, repetitions):
+
+    valeurs_p = np.linspace(0.1, 0.7, 70)
+    resultats = []
+
+    for p in valeurs_p:
+
+        proba = proba_percolation_2D_r(x, y, p, repetitions)
+
+        resultats.append(proba)
+
+    resultats = np.array(resultats)
+
+    indice = np.argmin(abs(resultats - 0.5))
+
+    pc_estime = valeurs_p[indice]
+
+    return pc_estime, valeurs_p, resultats
+
+
+repetitions = 200
+valeurs_p = np.linspace(0.5, 0.7, 60)
+tailles = [
+    (20, 20),
+    (60, 60),
+    (200, 200)
+]
+
+
+
+for x, y in tailles:
+
+    pc, valeurs_p, resultats = estimer_pc_2D_r(x, y, repetitions)
+
+    plt.plot(
+        valeurs_p,
+        resultats,
+        marker="o", markersize=2,  linestyle='None',
+        label=f"{x}x{y}, pc≈{pc:.3f}"
+    )
+
+plt.xlabel("p")
+plt.ylabel("Probabilité de percolation")
+plt.title("Estimation de pc pour réseaux carre 2D")
+plt.grid()
+plt.legend(loc='upper left')
+plt.show()
